@@ -1,20 +1,22 @@
-# NEO Tracker & Community Hub
+# NEO Tracker & Community Hub 🚀
 
-A full-stack MERN application that tracks Near-Earth Objects (NEOs) using real-time NASA data and provides a community platform for discussion and analysis.
+An interactive MERN stack web application that leverages NASA's Near Earth Object Web Service (NeoWs) and Center for Near-Earth Object Studies (CNEOS) APIs to track upcoming asteroids, alongside a thriving community discussion forum built on MongoDB.
 
-## Features
-* **Live Asteroid Tracking:** Fetches real-time orbital data using NASA's Asteroids NeoWs API.
-* **Hazard Assessment:** Visual indicators for potentially hazardous objects.
-* **Community Hub:** (Upcoming) User-generated discussions and analysis linked to specific space objects.
+## 🛠️ Project Structure
 
-## Tech Stack
-* **Frontend:** React.js (Upcoming)
-* **Backend:** Node.js, Express.js
-* **Database:** MongoDB (Upcoming)
-* **External APIs:** NASA Asteroids NeoWs
+- **`/backend`**: Node.js & Express REST API handling third-party NASA endpoints, data aggregation, and database interaction.
+- **`/frontend`**: React.js single-page application built with modern UI elements and data visualizations.
 
-## Setup Instructions
-1. Clone the repository.
-2. Run `npm install` in both the frontend and backend directories.
-3. Create a `.env` file in the backend directory and add your `NASA_API_KEY`.
-4. Start the development server using `npm start`.
+## 🚀 Upcoming Milestones
+
+- [ ] Milestone 1: Initialize monorepo workspace and Express baseline server.
+- [ ] Milestone 2: Build the NASA API aggregator service (NeoWs feed parser).
+- [ ] Milestone 3: Set up MongoDB Atlas cluster and define comment schemas.
+- [ ] Milestone 4: Construct the React dashboard UI with real-time analytics.
+
+## 📦 Local Setup (Backend)
+
+1. Navigate to the backend directory: `cd backend`
+2. Install dependencies: `npm install`
+3. Create a `.env` file based on the environment variables guide and add your NASA API key.
+4. Run development server: `npm run dev`
