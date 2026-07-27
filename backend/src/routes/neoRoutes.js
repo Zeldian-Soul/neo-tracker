@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { getFeed } = require('../controllers/neoController');
+const { getFeed, createComment, getCommentsByAsteroid } = require('../controllers/neoController');
 
-// Define the GET route for our asteroid feed
 router.get('/feed', getFeed);
+router.post('/comments', createComment);                  
+router.get('/comments/:asteroidId', getCommentsByAsteroid); 
 
 module.exports = router;
