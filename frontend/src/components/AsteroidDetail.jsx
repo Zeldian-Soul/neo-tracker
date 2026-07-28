@@ -2,28 +2,126 @@
 import { useState, useEffect, useContext } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext'; // 1. Import the context
+import { AuthContext } from '../context/AuthContext';
+import { motion } from 'framer-motion';
+
+// Recursive Comment Component with Dynamic Indentation
+const CommentNode = ({ 
+  comment, 
+  depth = 0, 
+  comments, 
+  user, 
+  replyingTo, 
+  setReplyingTo, 
+  replyText, 
+  setReplyText, 
+  submitComment 
+}) => {
+  // Filter direct replies to THIS comment
+  const replies = comments.filter(c => c.parentId && String(c.parentId) === String(comment._id));
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      style={{ 
+        marginLeft: depth > 0 ? '24px' : '0px', 
+        marginTop: '12px',
+        borderLeft: depth > 0 ? '2px solid var(--neon-purple)' : 'none',
+        paddingLeft: depth > 0 ? '12px' : '0px'
+      }}
+    >
+      <div className="glass-card" style={{ padding: '14px', border: '1px solid #333' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <strong style={{ color: 'var(--neon-purple)' }}>{comment.username}</strong>
+          <span style={{ fontSize: '0.8em', color: 'var(--text-muted)' }}>
+            {new Date(comment.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+
+        <p style={{ margin: '8px 0', lineHeight: '1.4' }}>{comment.text}</p>
+
+        {user && (
+          <button 
+            onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--neon-blue)', 
+              cursor: 'pointer', 
+              fontSize: '0.85em', 
+              padding: 0,
+              marginTop: '4px'
+            }}
+          >
+            {replyingTo === comment._id ? 'Cancel Reply' : 'Reply 💬'}
+          </button>
+        )}
+
+        {/* Inline Reply Form */}
+        {replyingTo === comment._id && (
+          <motion.form 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            onSubmit={(e) => submitComment(e, comment._id)} 
+            style={{ marginTop: '10px', display: 'flex', gap: '10px' }}
+          >
+            <input 
+              type="text" 
+              value={replyText} 
+              onChange={(e) => setReplyText(e.target.value)} 
+              placeholder={`Reply to ${comment.username}...`}
+              style={{ flex: 1, padding: '8px 12px', borderRadius: '4px' }}
+              autoFocus
+            />
+            <button type="submit" className="neon-btn" style={{ padding: '6px 14px' }}>
+              Post
+            </button>
+          </motion.form>
+        )}
+      </div>
+
+      {/* Render Sub-Replies */}
+      {replies.length > 0 && (
+        <div>
+          {replies.map(reply => (
+            <CommentNode 
+              key={reply._id} 
+              comment={reply} 
+              depth={depth + 1} 
+              comments={comments}
+              user={user}
+              replyingTo={replyingTo}
+              setReplyingTo={setReplyingTo}
+              replyText={replyText}
+              setReplyText={setReplyText}
+              submitComment={submitComment}
+            />
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
 const AsteroidDetail = () => {
   const { id } = useParams();
   const location = useLocation();
   const asteroid = location.state?.asteroid;
-
-  // 2. Extract the logged-in user from AuthContext
   const { user } = useContext(AuthContext);
 
   const [comments, setComments] = useState([]);
-  // We removed the manual username state!
   const [text, setText] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
 
   const fetchComments = async () => {
     try {
       const response = await axios.get(`http://localhost:5000/api/neo/comments/${id}`);
       setComments(response.data.data || []);
     } catch (err) {
-      console.error("Error fetching comments from database:", err);
+      console.error("Error fetching comments:", err);
     }
   };
 
@@ -31,107 +129,75 @@ const AsteroidDetail = () => {
     fetchComments();
   }, [id]);
 
-  const handleCommentSubmit = async (e) => {
+  const submitComment = async (e, parentId = null) => {
     e.preventDefault();
-    if (!text.trim()) {
-      setFeedback("Please enter a comment before posting.");
-      return;
-    }
+    const commentText = parentId ? replyText : text;
+    if (!commentText.trim()) return;
 
     try {
-      setSubmitting(true);
-      setFeedback('');
-
       await axios.post('http://localhost:5000/api/neo/comments', {
         asteroidId: id,
-        username: user.username, // 3. Automatically use the authenticated user's name
-        text
+        username: user.username,
+        text: commentText,
+        parentId: parentId
       });
-
       setText('');
-      setFeedback('✅ Comment posted successfully!');
-      setSubmitting(false);
+      setReplyText('');
+      setReplyingTo(null);
       fetchComments();
     } catch (err) {
       console.error("Error saving comment:", err);
-      setFeedback('❌ Failed to save comment. Check if backend is running.');
-      setSubmitting(false);
     }
   };
 
-  return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'left' }}>
-      <Link to="/" style={{ color: '#646cff', textDecoration: 'none' }}>← Back to Dashboard</Link>
-      
-      <h2>Asteroid: {asteroid?.name || id}</h2>
-      
-      {asteroid ? (
-        <div style={{ backgroundColor: '#222', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-          <p><strong>NASA ID:</strong> {asteroid.id}</p>
-          <p><strong>Potentially Hazardous:</strong> {asteroid.is_potentially_hazardous_asteroid ? "⚠️ YES" : "✅ NO"}</p>
-          <p>
-            <strong>Estimated Diameter:</strong>{' '}
-            {asteroid.estimated_diameter?.meters
-              ? `${Math.round(asteroid.estimated_diameter.meters.estimated_diameter_min)}m - ${Math.round(asteroid.estimated_diameter.meters.estimated_diameter_max)}m`
-              : 'N/A'}
-          </p>
-          <p><strong>Absolute Magnitude:</strong> {asteroid.absolute_magnitude_h ?? 'N/A'}</p>
-        </div>
-      ) : (
-        <div style={{ backgroundColor: '#222', padding: '15px', borderRadius: '8px', marginBottom: '20px', color: '#aaa' }}>
-          <p>⚠️ <em>Detailed trajectory parameters unavailable (page refreshed). You can still view and post community discussions below for ID: {id}</em></p>
-        </div>
-      )}
+  // Only select top-level comments (where parentId is null or undefined)
+  const rootComments = comments.filter(c => !c.parentId);
 
+  return (
+    <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'left', paddingBottom: '50px' }}>
+      <Link to="/" style={{ color: 'var(--neon-blue)', textDecoration: 'none' }}>← Back to Dashboard</Link>
+      
+      <h2 style={{ marginTop: '20px' }}>Asteroid: {asteroid?.name || id}</h2>
       <hr style={{ margin: '20px 0', borderColor: '#444' }} />
 
       <h3>Community Discussions ({comments.length})</h3>
 
-      {/* 4. Conditional Rendering for the Comment Form */}
       {user ? (
-        <form onSubmit={handleCommentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-          <div style={{ fontSize: '0.9em', color: '#aaa' }}>
-            Posting as: <strong style={{ color: '#fff' }}>{user.username}</strong>
-          </div>
-          <div>
-            <textarea 
-              placeholder="Share your thoughts about this Near-Earth Object..." 
-              value={text} 
-              onChange={(e) => setText(e.target.value)}
-              rows="3"
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #555', backgroundColor: '#1a1a1a', color: '#fff' }}
-            />
-          </div>
-          <button 
-            type="submit" 
-            disabled={submitting}
-            style={{ padding: '8px 16px', backgroundColor: '#646cff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', alignSelf: 'flex-start' }}
-          >
-            {submitting ? 'Posting...' : 'Post Comment'}
-          </button>
-          {feedback && <p style={{ marginTop: '5px', fontSize: '0.9em' }}>{feedback}</p>}
+        <form onSubmit={(e) => submitComment(e, null)} style={{ marginBottom: '30px' }}>
+          <textarea 
+            placeholder="Log your observation..." 
+            value={text} 
+            onChange={(e) => setText(e.target.value)}
+            rows="3"
+            style={{ width: '100%', padding: '12px', borderRadius: '8px', marginBottom: '10px' }}
+          />
+          <button type="submit" className="neon-btn">Transmit Log</button>
         </form>
       ) : (
-        <div style={{ backgroundColor: '#2a2a2a', padding: '15px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid #646cff' }}>
+        <div className="glass-card" style={{ padding: '15px', marginBottom: '30px', borderLeft: '4px solid var(--neon-purple)' }}>
           <p style={{ margin: 0 }}>
-            Want to join the discussion? <Link to="/login" style={{ color: '#646cff', fontWeight: 'bold' }}>Log in</Link> or <Link to="/signup" style={{ color: '#646cff', fontWeight: 'bold' }}>Sign up</Link> to post a comment.
+            Want to join the network? <Link to="/login" style={{ color: 'var(--neon-purple)', fontWeight: 'bold' }}>Log in</Link> or <Link to="/signup" style={{ color: 'var(--neon-purple)', fontWeight: 'bold' }}>Sign up</Link>.
           </p>
         </div>
       )}
 
-      {/* Comment List */}
       <div>
-        {comments.length === 0 ? (
-          <p style={{ color: '#aaa' }}>No comments posted yet for this asteroid. Be the first!</p>
+        {rootComments.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)' }}>No logs transmit yet. Be the first!</p>
         ) : (
-          comments.map((comment) => (
-            <div key={comment._id} style={{ borderBottom: '1px solid #333', padding: '15px 0' }}>
-              <strong style={{ color: '#646cff' }}>{comment.username}</strong>
-              <span style={{ fontSize: '0.8em', color: '#888', marginLeft: '10px' }}>
-                {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : ''}
-              </span>
-              <p style={{ margin: '8px 0 0 0', lineHeight: '1.4' }}>{comment.text}</p>
-            </div>
+          rootComments.map((comment) => (
+            <CommentNode 
+              key={comment._id} 
+              comment={comment} 
+              depth={0} 
+              comments={comments}
+              user={user}
+              replyingTo={replyingTo}
+              setReplyingTo={setReplyingTo}
+              replyText={replyText}
+              setReplyText={setReplyText}
+              submitComment={submitComment}
+            />
           ))
         )}
       </div>

@@ -15,10 +15,22 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-      // Automatically attach token to all future axios requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    // DEFENSIVE CHECK: Ensure storedUser is not the literal string 'undefined'
+    if (storedUser && storedUser !== 'undefined' && token) {
+      try {
+        setUser(JSON.parse(storedUser));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      } catch (error) {
+        console.error("Failed to parse user from local storage. Clearing corrupted data.");
+        // If data is corrupted, wipe it so the app doesn't crash
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    } else {
+      // Clean up the bad 'undefined' string if it snuck in
+      if (storedUser === 'undefined') {
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
@@ -37,14 +49,9 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     const response = await axios.post('http://localhost:5000/api/auth/register', { username, email, password });
-    const { user, token } = response.data;
-    
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('token', token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    
-    setUser(user);
-    navigate('/');
+    // Note: Our new register flow initiates an email and doesn't return a full user/token to log in yet.
+    // If you plan to automatically log them in later, it would be handled in the VerifyEmail component!
+    return response.data;
   };
 
   const logout = () => {
@@ -55,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div>Initializing Systems...</div>;
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout }}>

@@ -16,22 +16,28 @@ const getFeed = async (req, res) => {
 
 const createComment = async (req, res) => {
     try {
-        const { asteroidId, username, text } = req.body;
+        // 1. Destructure parentId along with other fields
+        const { asteroidId, username, text, parentId } = req.body;
 
         if (!asteroidId || !username || !text) {
-            return res.status(400).json({ error: 'Please provide asteroidId, username, and comment text.' });
+            return res.status(400).json({ error: 'Missing required comment fields.' });
         }
 
+        // 2. Save parentId to MongoDB (null for top-level, ObjectId string for replies)
         const newComment = await Comment.create({
             asteroidId,
             username,
-            text
+            text,
+            parentId: parentId || null 
         });
 
-        res.status(201).json({ status: 'success', data: newComment });
+        res.status(201).json({
+            status: 'success',
+            data: newComment
+        });
     } catch (error) {
         console.error('Error creating comment:', error.message);
-        res.status(500).json({ error: 'Server error saving community comment.' });
+        res.status(500).json({ error: 'Failed to post comment.' });
     }
 };
 

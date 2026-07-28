@@ -2,6 +2,20 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const Dashboard = () => {
   const [asteroids, setAsteroids] = useState([]);
@@ -21,7 +35,7 @@ const Dashboard = () => {
         setLoading(false);
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError("Failed to load asteroid data from backend. Is your Express server running?");
+        setError("Failed to load asteroid data from backend.");
         setLoading(false);
       }
     };
@@ -29,51 +43,140 @@ const Dashboard = () => {
     fetchAsteroids();
   }, []);
 
-  if (loading) return <h2>Scanning the skies... Loading data...</h2>;
-  if (error) return <h2 style={{ color: 'red' }}>{error}</h2>;
+  if (loading) return (
+    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} style={{ fontSize: '3rem' }}>🛰️</motion.div>
+      <h2 style={{ color: 'var(--neon-blue)' }}>Scanning the skies...</h2>
+    </div>
+  );
+  
+  if (error) return <h2 style={{ color: '#ff4444' }}>{error}</h2>;
+
+  const hazardousCount = asteroids.filter(a => a.is_potentially_hazardous_asteroid).length;
+  const largestAsteroid = Math.max(...asteroids.map(a => a.estimated_diameter.meters.estimated_diameter_max));
+
+  // --- Chart.js Data and Configuration ---
+  const chartData = {
+    labels: asteroids.map(a => a.name),
+    datasets: [
+      {
+        label: 'Max Estimated Diameter (Meters)',
+        data: asteroids.map(a => a.estimated_diameter.meters.estimated_diameter_max),
+        backgroundColor: asteroids.map(a => 
+          a.is_potentially_hazardous_asteroid ? 'rgba(255, 68, 68, 0.7)' : 'rgba(0, 243, 255, 0.7)'
+        ),
+        borderColor: asteroids.map(a => 
+          a.is_potentially_hazardous_asteroid ? '#ff4444' : '#00f3ff'
+        ),
+        borderWidth: 1,
+        borderRadius: 4,
+      }
+    ]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      title: {
+        display: true,
+        text: 'Asteroid Size Comparison (Red = Hazardous)',
+        color: '#e0e0e0',
+        font: { size: 16 }
+      }
+    },
+    scales: {
+      y: {
+        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        ticks: { color: '#8892b0' }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#8892b0', maxRotation: 45, minRotation: 45 }
+      }
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
-    <div>
-      <h2>Today's Near-Earth Objects ({asteroids.length})</h2>
-      <p>Click on any asteroid to view discussions and post comments!</p>
+    <div style={{ paddingBottom: '50px' }}>
+      <h2>Sector Overview</h2>
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
+      <div className="stats-container">
+        <div className="glass-card stat-box">
+          <h3>Total Objects Today</h3>
+          <p>{asteroids.length}</p>
+        </div>
+        <div className="glass-card stat-box danger">
+          <h3>Hazardous Objects</h3>
+          <p style={{ color: hazardousCount > 0 ? '#ff4444' : '#fff' }}>{hazardousCount}</p>
+        </div>
+        <div className="glass-card stat-box">
+          <h3>Largest Detected</h3>
+          <p>{Math.round(largestAsteroid)}<span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>m</span></p>
+        </div>
+      </div>
+
+      {/* --- The New Chart Section --- */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-card" 
+        style={{ padding: '20px', marginBottom: '30px', height: '400px', display: 'flex', justifyContent: 'center' }}
+      >
+        <Bar data={chartData} options={chartOptions} />
+      </motion.div>
+
+      <h2>Near-Earth Object Feed</h2>
+      
+      <motion.div 
+        className="asteroid-grid"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
         {asteroids.map((asteroid) => (
-          <div 
+          <motion.div 
             key={asteroid.id} 
-            style={{
-              border: '1px solid #444',
-              borderRadius: '8px',
-              padding: '15px',
-              width: '80%',
-              maxWidth: '500px',
-              textAlign: 'left',
-              backgroundColor: '#1a1a1a'
-            }}
+            variants={itemVariants}
+            className="glass-card"
+            style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
           >
-            <h3>{asteroid.name}</h3>
-            <p><strong>Max Diameter:</strong> {Math.round(asteroid.estimated_diameter.meters.estimated_diameter_max)} meters</p>
-            <p><strong>Hazardous Status:</strong> {asteroid.is_potentially_hazardous_asteroid ? "⚠️ Hazardous" : "✅ Safe"}</p>
+            <div>
+              <h3 style={{ margin: '0 0 15px 0', color: 'var(--neon-blue)' }}>{asteroid.name}</h3>
+              <p style={{ margin: '5px 0' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Est. Max Diameter:</span><br/>
+                <strong>{Math.round(asteroid.estimated_diameter.meters.estimated_diameter_max)} meters</strong>
+              </p>
+              <p style={{ margin: '5px 0 20px 0' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Hazard Status:</span><br/>
+                {asteroid.is_potentially_hazardous_asteroid ? 
+                  <strong style={{ color: '#ff4444' }}>⚠️ Potentially Hazardous</strong> : 
+                  <strong style={{ color: '#4caf50' }}>✅ Safe Trajectory</strong>
+                }
+              </p>
+            </div>
             
-            {/* Link to detail page, passing asteroid data via route state */}
             <Link 
               to={`/asteroid/${asteroid.id}`} 
               state={{ asteroid }}
-              style={{
-                display: 'inline-block',
-                marginTop: '10px',
-                padding: '8px 12px',
-                backgroundColor: '#646cff',
-                color: '#fff',
-                borderRadius: '4px',
-                textDecoration: 'none'
-              }}
+              className="neon-btn"
+              style={{ textAlign: 'center', display: 'block', textDecoration: 'none' }}
             >
-              View Details & Discussions →
+              Analyze Data
             </Link>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };

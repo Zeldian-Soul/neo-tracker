@@ -16,6 +16,10 @@ const CommentSchema = new mongoose.Schema({
         required: [true, 'Comment content cannot be empty.'],
         maxlength: [500, 'Comments are capped at 500 characters for readability.']
     },
+    parentId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Comment', default: null 
+    },
     upvotes: {
         type: Number,
         default: 0
