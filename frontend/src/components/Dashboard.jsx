@@ -40,7 +40,17 @@ const Dashboard = () => {
       }
     };
 
+    // 1. Fetch data immediately when the component first loads
     fetchAsteroids();
+
+    // 2. Set up an interval to fetch data automatically every 10 minutes (600,000 milliseconds)
+    const intervalId = setInterval(() => {
+      console.log("Checking NASA servers for new Near-Earth Objects...");
+      fetchAsteroids();
+    }, 600000); 
+
+    // 3. Cleanup function: Tell React to clear the timer if the user leaves the Dashboard
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) return (
