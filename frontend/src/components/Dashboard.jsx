@@ -13,6 +13,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { API_BASE_URL } from '../config';
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -26,15 +27,20 @@ const Dashboard = () => {
     const fetchAsteroids = async () => {
       try {
         const today = new Date().toISOString().split('T')[0];
-        const response = await axios.get(`http://localhost:5000/api/neo/feed?start_date=${today}&end_date=${today}`);
+        const response = await axios.get(`${API_BASE_URL}/api/neo/feed?start_date=${today}&end_date=${today}`);
         
         const data = response.data.asteroids;
         const asteroidList = data[today] || [];
         
         setAsteroids(asteroidList);
+        setError(null);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("API Fetch Error Details:", {
+          message: err.message,
+          urlTried: `${API_BASE_URL}/api/neo/feed`,
+          status: err.response?.status
+        });
         setError("Failed to load asteroid data from backend.");
         setLoading(false);
       }

@@ -4,8 +4,39 @@ import { useLocation, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import TrajectoryRadar from './TrajectoryRadar';
 
-// Recursive Comment Component with Dynamic Indentation
+// ==========================================
+// 1. HELPER: RELATIVE TIME ("TIME AGO")
+// ==========================================
+const timeAgo = (dateString) => {
+  if (!dateString) return '';
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffInSeconds = Math.floor((now - past) / 1000);
+
+  if (diffInSeconds < 30) return 'just now';
+  if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+
+  const diffInYears = Math.floor(diffInDays / 365);
+  return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+};
+
+// ==========================================
+// 2. RECURSIVE COMMENT NODE COMPONENT
+// ==========================================
 const CommentNode = ({ 
   comment, 
   depth = 0, 
@@ -19,6 +50,9 @@ const CommentNode = ({
 }) => {
   // Filter direct replies to THIS comment
   const replies = comments.filter(c => c.parentId && String(c.parentId) === String(comment._id));
+
+  // YouTube-style accordion toggle state (Hidden by default)
+  const [showReplies, setShowReplies] = useState(false);
 
   return (
     <motion.div 
@@ -35,8 +69,10 @@ const CommentNode = ({
       <div className="glass-card" style={{ padding: '14px', border: '1px solid #333' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <strong style={{ color: 'var(--neon-purple)' }}>{comment.username}</strong>
+          
+          {/* Using our custom Time Ago formatter */}
           <span style={{ fontSize: '0.8em', color: 'var(--text-muted)' }}>
-            {new Date(comment.createdAt).toLocaleDateString()}
+            {timeAgo(comment.createdAt)}
           </span>
         </div>
 
@@ -64,7 +100,10 @@ const CommentNode = ({
           <motion.form 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            onSubmit={(e) => submitComment(e, comment._id)} 
+            onSubmit={(e) => {
+              submitComment(e, comment._id);
+              setShowReplies(true); // Automatically open the replies list after posting a reply!
+            }} 
             style={{ marginTop: '10px', display: 'flex', gap: '10px' }}
           >
             <input 
@@ -80,11 +119,37 @@ const CommentNode = ({
             </button>
           </motion.form>
         )}
+
+        {/* YOUTUBE-STYLE REPLY ACCORDION BUTTON */}
+        {replies.length > 0 && (
+          <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #222' }}>
+            <button
+              onClick={() => setShowReplies(!showReplies)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--neon-blue)',
+                cursor: 'pointer',
+                fontSize: '0.85em',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: 0
+              }}
+            >
+              {showReplies ? '▲ Hide replies' : `▼ Show ${replies.length} repl${replies.length > 1 ? 'ies' : 'y'}`}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Render Sub-Replies */}
-      {replies.length > 0 && (
-        <div>
+      {/* Render Sub-Replies ONLY if showReplies is true */}
+      {showReplies && replies.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+        >
           {replies.map(reply => (
             <CommentNode 
               key={reply._id} 
@@ -99,12 +164,15 @@ const CommentNode = ({
               submitComment={submitComment}
             />
           ))}
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );
 };
 
+// ==========================================
+// 3. MAIN ASTEROID DETAIL PAGE COMPONENT
+// ==========================================
 const AsteroidDetail = () => {
   const { id } = useParams();
   const location = useLocation();
@@ -116,9 +184,12 @@ const AsteroidDetail = () => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
 
+  // NOTE: Replace http://localhost:5000 with your Render Cloud URL if deployed!
+  const API_URL = "http://localhost:5000";
+
   const fetchComments = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/neo/comments/${id}`);
+      const response = await axios.get(`${API_URL}/api/neo/comments/${id}`);
       setComments(response.data.data || []);
     } catch (err) {
       console.error("Error fetching comments:", err);
@@ -135,7 +206,7 @@ const AsteroidDetail = () => {
     if (!commentText.trim()) return;
 
     try {
-      await axios.post('http://localhost:5000/api/neo/comments', {
+      await axios.post(`${API_URL}/api/neo/comments`, {
         asteroidId: id,
         username: user.username,
         text: commentText,
@@ -160,6 +231,8 @@ const AsteroidDetail = () => {
       <h2 style={{ marginTop: '20px' }}>Asteroid: {asteroid?.name || id}</h2>
       <hr style={{ margin: '20px 0', borderColor: '#444' }} />
 
+      {asteroid && <TrajectoryRadar asteroid={asteroid} />}
+
       <h3>Community Discussions ({comments.length})</h3>
 
       {user ? (
@@ -183,7 +256,7 @@ const AsteroidDetail = () => {
 
       <div>
         {rootComments.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)' }}>No logs transmit yet. Be the first!</p>
+          <p style={{ color: 'var(--text-muted)' }}>No logs transmitted yet. Be the first!</p>
         ) : (
           rootComments.map((comment) => (
             <CommentNode 
