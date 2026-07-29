@@ -27,5 +27,5 @@ app.get('/api/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is blazing on http://localhost:${PORT}`);
+  console.log(`Server is blazing on port ${PORT}`);
 });
