@@ -11,7 +11,15 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5174',
+    'https://zeldian-soul.github.io/' // <-- Replace with your exact GitHub Pages domain
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 // --- DEDICATED PING ENDPOINT ---
 // This lightweight route is strictly for keeping the Render server awake
