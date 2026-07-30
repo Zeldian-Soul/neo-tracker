@@ -1,6 +1,7 @@
 // keep-alive.js
-// We use Node's native fetch API to send the HTTP GET request
-const APP_URL = 'https://neo-tracker-backend.onrender.com'; // Replace with your actual Render URL
+
+// We updated the URL to point directly to our lightweight ping endpoint
+const APP_URL = 'https://neo-tracker-backend.onrender.com/api/ping'; 
 
 async function ping() {
     try {
@@ -11,5 +12,4 @@ async function ping() {
     }
 }
 
-// Execute the ping
 ping();
