@@ -13,7 +13,7 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
-/ --- DEDICATED PING ENDPOINT ---
+// --- DEDICATED PING ENDPOINT ---
 // This lightweight route is strictly for keeping the Render server awake
 app.get('/api/ping', (req, res) => {
     // We send a 200 HTTP status (OK) and a simple message.
