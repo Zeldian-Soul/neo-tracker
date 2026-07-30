@@ -13,6 +13,13 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
+/ --- DEDICATED PING ENDPOINT ---
+// This lightweight route is strictly for keeping the Render server awake
+app.get('/api/ping', (req, res) => {
+    // We send a 200 HTTP status (OK) and a simple message.
+    // Notice we do NOT connect to the database here to save resources!
+    res.status(200).json({ status: 'active', message: 'NEO Tracker backend is awake!' });
+});
 
 // Routes
 const neoRoutes = require('./src/routes/neoRoutes');
