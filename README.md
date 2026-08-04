@@ -1,22 +1,52 @@
-# NEO Tracker & Community Hub 🚀
+# ☄️ NEO Tracker (Near-Earth Object Tracker)
 
-An interactive MERN stack web application that leverages NASA's Near Earth Object Web Service (NeoWs) and Center for Near-Earth Object Studies (CNEOS) APIs to track upcoming asteroids, alongside a thriving community discussion forum built on MongoDB.
+> **🚀 Live Demo:** [View the Live Application](https://zeldian-soul.github.io/neo-tracker/)
 
-## 🛠️ Project Structure
+NEO Tracker is a full-stack web application that fetches real-time data from NASA's API to visualize asteroids passing by our planet. Built with a focus on interactive data visualization and community engagement.
 
-- **`/backend`**: Node.js & Express REST API handling third-party NASA endpoints, data aggregation, and database interaction.
-- **`/frontend`**: React.js single-page application built with modern UI elements and data visualizations.
+---
 
-## 🚀 Upcoming Milestones
+## 🎨 Project Showcase
 
-- [ ] Milestone 1: Initialize monorepo workspace and Express baseline server.
-- [ ] Milestone 2: Build the NASA API aggregator service (NeoWs feed parser).
-- [ ] Milestone 3: Set up MongoDB Atlas cluster and define comment schemas.
-- [ ] Milestone 4: Construct the React dashboard UI with real-time analytics.
+### 📊 Real-Time Analytics Dashboard
+The dashboard processes live NASA data to display the total objects today, hazardous classifications, and a comparative size chart using **Chart.js**.
+<p align="center">
+  <img src="assets/dashboard.jpg" alt="NEO Tracker Dashboard" width="800"/>
+</p>
 
-## 📦 Local Setup (Backend)
+### 🛰️ Close Approach Radar Simulation
+An interactive 2D canvas simulation that visualizes the flyby trajectory of selected asteroids relative to Earth. 
+<p align="center">
+  <img src="assets/radar.jpg" alt="Radar Simulation" width="800"/>
+</p>
 
-1. Navigate to the backend directory: `cd backend`
-2. Install dependencies: `npm install`
-3. Create a `.env` file based on the environment variables guide and add your NASA API key.
-4. Run development server: `npm run dev`
+### 💬 Community Discussions
+A fully integrated, nested comment system where space enthusiasts can log observations and discuss specific Near-Earth Objects.
+<p align="center">
+  <img src="assets/discussions.png" alt="Community Discussions" width="800"/>
+</p>
+
+### 💻 Under the Hood
+A robust MVC backend architecture built to ensure high performance and resilience, including automatic fallback datasets during NASA API outages.
+<p align="center">
+  <img src="assets/backend-code.png" alt="Backend Code in VS Code" width="800"/>
+</p>
+
+---
+
+## 🛠️ Tech Stack
+
+| Frontend ⚛️ | Backend ⚙️ | Deployment ☁️ |
+| :--- | :--- | :--- |
+| **React** (Vite) | **Node.js** & **Express** | **Vercel** (Serverless API) |
+| **Chart.js** (Data Viz) | **MongoDB Atlas** (Database) | **GitHub Pages** (UI Host) |
+| **Canvas API** (Radar) | **Mongoose** (Models) | **Git** (Version Control) |
+
+---
+
+## ✨ Key Features
+
+* **🟢 Live NASA Integration:** Fetches and processes the NEO REST API in real-time.
+* **🔴 Hazard Detection:** Highlights potentially hazardous objects based on relative velocity and miss distance.
+* **🔵 Interactive Trajectories:** Custom mathematical rendering of flyby paths.
+* **🟣 Resilient Architecture:** Custom retry logic and offline fallbacks to handle external API downtime gracefully.
